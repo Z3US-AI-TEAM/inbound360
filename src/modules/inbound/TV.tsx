@@ -8,7 +8,7 @@ import { cn, fmtHM, fmtLong, minutesOfDay, pad } from "@/lib/utils";
 import { useSession } from "@/lib/session";
 
 export default function TV() {
-  const { tenantPublic } = useSession();
+  const { tenantPublic, plant } = useSession();
   const q = useAppointments(0); const docks = useDocks();
   const [now, setNow] = React.useState(new Date());
   React.useEffect(() => { const t = setInterval(() => setNow(new Date()), 15000); return () => clearInterval(t); }, []);
@@ -21,7 +21,7 @@ export default function TV() {
     <div className="min-h-screen p-6 text-[#f2f2f2]" style={{ background: "var(--tv-bg)" }}>
       <div className="flex items-center gap-4">
         <TenantLogo size={44} />
-        <h1 className="text-[28px] font-bold tracking-tight">{tenantPublic?.name?.split("·").slice(-1)[0].trim()} · chegadas</h1>
+        <h1 className="text-[28px] font-bold tracking-tight">{tenantPublic?.name} · {plant?.name} · chegadas</h1>
         <span className="mono text-[20px] text-[#b9bfc9]">{pad(now.getHours())}:{pad(now.getMinutes())} {fmtLong(now)}</span>
         <Link to="/app/chegadas" className="ml-auto inline-flex items-center gap-2 rounded-sm border border-[#343944] px-3 py-2 font-bold hover:bg-[#171a1f]"><X className="size-4" /> Fechar</Link>
       </div>

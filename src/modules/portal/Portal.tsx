@@ -14,7 +14,7 @@ import { cn, fmtHM, fmtDia, bizDay, dayName, minutesOfDay, fmtDMY } from "@/lib/
 import { statusChipKind } from "@/modules/inbound/Hoje";
 
 export default function Portal() {
-  const { isExternal, externalEntityIds, profile } = useSession();
+  const { isExternal, externalEntityIds, profile, plants, plant, setPlant, tenantPublic } = useSession();
   const suppliers = useSuppliers();
   const [pick, setPick] = React.useState<string | null>(null);
   const mine = React.useMemo(() => {
@@ -28,7 +28,8 @@ export default function Portal() {
     <div className="max-w-[980px] mx-auto">
       <div className="flex flex-wrap items-center gap-3 mb-4">
         <TenantLogo size={40} />
-        <div><div className="eyebrow">portal do fornecedor · planta Louveira</div><h1 className="text-[22px]">{mine.name}</h1></div>
+        <div><div className="eyebrow">portal do fornecedor · {tenantPublic?.name}{plants.length > 1 ? "" : plant ? ` · ${plant.name}` : ""}</div><h1 className="text-[22px]">{mine.name}</h1></div>
+        {plants.length > 1 && <div className="flex items-center gap-2 text-xs text-muted">Unidade: <Select className="w-auto py-1" value={plant?.id || ""} onChange={(e) => setPlant(e.target.value)}>{plants.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}</Select></div>}
         {!isExternal && <div className="ml-auto flex items-center gap-2 text-xs text-muted">Ver como: <Select className="w-auto py-1" value={mine.id} onChange={(e) => setPick(e.target.value)}>{(suppliers.data || []).filter((s) => !s.is_broker).map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}</Select></div>}
         {isExternal && <div className="ml-auto text-xs text-muted">{profile?.email} · identidade válida por 60 dias sem uso</div>}
       </div>

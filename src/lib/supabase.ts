@@ -9,5 +9,4 @@ export const supabase = createClient(url || "https://placeholder.supabase.co", k
   auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: true },
 });
 
-export const TENANT_SLUG = (import.meta.env.VITE_TENANT_SLUG as string) || "pg-louveira";
 export const APP_NAME = (import.meta.env.VITE_APP_NAME as string) || "Inbound 360";

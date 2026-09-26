@@ -2,7 +2,7 @@ import * as React from "react";
 import { Routes, Route, NavLink, Navigate } from "react-router-dom";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { Users, Building2, Database, CreditCard, Activity, ShieldAlert, LifeBuoy, BookOpen, HelpCircle, Send, Trash2, RefreshCw, Download } from "lucide-react";
+import { Users, Building2, Factory, Database, CreditCard, Activity, ShieldAlert, LifeBuoy, BookOpen, HelpCircle, Send, Trash2, RefreshCw, Download } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import { useSession } from "@/lib/session";
 import { Card, CardHeader, CardBody, Chip, Kpi, Empty } from "@/components/ui/card";
@@ -11,11 +11,12 @@ import { Input, Field, Select, Textarea } from "@/components/ui/input";
 import { Switch, PageHeader, Spinner } from "@/components/ui/misc";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { cn, fmtDMY, fmtHM, relTime, isPersonalEmail } from "@/lib/utils";
-import { useSuppliers, useDocks, useLoadTypes } from "@/modules/inbound/data";
+import { useSuppliers, useDocks, useLoadTypes, useGates } from "@/modules/inbound/data";
 
 const TABS = [
   { to: "usuarios", label: "Usuários e perfis", icon: Users, admin: true },
   { to: "tenant", label: "Identidade e marca", icon: Building2, admin: true },
+  { to: "unidades", label: "Unidades e portarias", icon: Factory, admin: true },
   { to: "cadastros", label: "Cadastros", icon: Database, admin: true },
   { to: "billing", label: "Billing", icon: CreditCard, admin: true },
   { to: "engajamento", label: "Engajamento", icon: Activity, admin: true },
@@ -39,6 +40,7 @@ export default function Config() {
         <Route index element={<Navigate to={isAdmin ? "usuarios" : "chamados"} replace />} />
         <Route path="usuarios" element={<Usuarios />} />
         <Route path="tenant" element={<TenantPage />} />
+        <Route path="unidades" element={<Unidades />} />
         <Route path="cadastros" element={<Cadastros />} />
         <Route path="billing" element={<Billing />} />
         <Route path="engajamento" element={<Engajamento />} />
@@ -104,6 +106,51 @@ function Usuarios() {
           ))}
         </CardBody></Card>
       </div>
+    </div>
+  );
+}
+
+function Unidades() {
+  const { tenant, plants, plant, setPlant, refresh } = useSession(); const qc = useQueryClient();
+  const gates = useGates(); const docks = useDocks();
+  const [np, setNp] = React.useState({ code: "", name: "", address: "", open: "06:00", close: "22:00" });
+  const [ng, setNg] = React.useState({ code: "", name: "" });
+  async function addPlant() {
+    if (!np.code || !np.name) return toast.error("Código e nome da unidade");
+    const { error } = await supabase.from("ib_plants").insert({ tenant_id: tenant!.id, code: np.code.toUpperCase(), name: np.name, address: np.address || null, open_time: np.open, close_time: np.close });
+    if (error) return toast.error(error.message);
+    toast.success("Unidade criada. Cadastre as portarias, docas e tipos de carga dela."); setNp({ code: "", name: "", address: "", open: "06:00", close: "22:00" }); await refresh();
+  }
+  async function addGate() {
+    if (!plant) return; if (!ng.code || !ng.name) return toast.error("Código e nome da portaria");
+    const { error } = await supabase.from("ib_gates").insert({ tenant_id: tenant!.id, plant_id: plant.id, code: ng.code.toUpperCase(), name: ng.name });
+    if (error) return toast.error(error.message);
+    toast.success("Portaria criada"); setNg({ code: "", name: "" }); qc.invalidateQueries({ queryKey: ["gates"] });
+  }
+  async function toggleGate(id: string, active: boolean) { await supabase.from("ib_gates").update({ active }).eq("id", id); qc.invalidateQueries({ queryKey: ["gates"] }); }
+  return (
+    <div className="grid lg:grid-cols-[1.3fr_1fr] gap-4">
+      <Card><CardHeader title="Unidades" eyebrow="cada unidade tem suas portarias, docas, regras e pátio · conta no billing" /><CardBody>
+        <table className="tbl"><thead><tr><th>Código</th><th>Unidade</th><th>Horário</th><th>Docas</th><th></th></tr></thead><tbody>
+          {plants.map((p) => <tr key={p.id} className={cn(plant?.id === p.id && "bg-surface-2")}><td className="mono">{p.code}</td><td><b>{p.name}</b><div className="text-xs text-muted">{p.address}</div></td><td className="mono text-xs">{p.open_time.slice(0, 5)} às {p.close_time.slice(0, 5)}</td><td className="mono">{plant?.id === p.id ? docks.data?.length ?? "…" : ""}</td><td className="text-right">{plant?.id !== p.id && <Button size="sm" onClick={() => setPlant(p.id)}>Selecionar</Button>}</td></tr>)}
+        </tbody></table>
+        <div className="mt-4 border-t border-line pt-3">
+          <div className="eyebrow mb-2">Portarias da unidade {plant?.name}</div>
+          {(gates.data || []).map((g) => <div key={g.id} className="flex items-center gap-2 py-1.5 border-b border-line last:border-0 text-[13px]"><span className="mono">{g.code}</span><b>{g.name}</b><span className="ml-auto"><Switch checked={g.active} onCheckedChange={(v) => void toggleGate(g.id, v)} label={g.active ? "ativa" : "inativa"} /></span></div>)}
+          <div className="mt-2 flex flex-wrap gap-2 items-end">
+            <Field label="Código" className="w-24"><Input value={ng.code} onChange={(e) => setNg({ ...ng, code: e.target.value })} placeholder="P3" /></Field>
+            <Field label="Nome" className="flex-1 min-w-[180px]"><Input value={ng.name} onChange={(e) => setNg({ ...ng, name: e.target.value })} placeholder="Portaria 3 · contêineres" /></Field>
+            <Button onClick={() => void addGate()}>Adicionar portaria</Button>
+          </div>
+        </div>
+      </CardBody></Card>
+      <Card><CardHeader title="Nova unidade" /><CardBody className="space-y-2">
+        <div className="grid grid-cols-[90px_1fr] gap-2"><Field label="Código"><Input value={np.code} onChange={(e) => setNp({ ...np, code: e.target.value })} placeholder="MAN" /></Field><Field label="Nome"><Input value={np.name} onChange={(e) => setNp({ ...np, name: e.target.value })} placeholder="Manaus" /></Field></div>
+        <Field label="Endereço"><Input value={np.address} onChange={(e) => setNp({ ...np, address: e.target.value })} /></Field>
+        <div className="grid grid-cols-2 gap-2"><Field label="Abre"><Input type="time" value={np.open} onChange={(e) => setNp({ ...np, open: e.target.value })} /></Field><Field label="Fecha"><Input type="time" value={np.close} onChange={(e) => setNp({ ...np, close: e.target.value })} /></Field></div>
+        <Button variant="primary" onClick={() => void addPlant()}>Criar unidade</Button>
+        <p className="text-xs text-muted">Unidade e portaria entram na conta do tenant. Valor unitário vem da Tabela Z3US.</p>
+      </CardBody></Card>
     </div>
   );
 }
@@ -193,7 +240,9 @@ function Billing() {
   const { tenant } = useSession();
   const acc = useQuery({ queryKey: ["billing", tenant?.id], enabled: !!tenant, queryFn: async () => { const { data } = await supabase.from("billing_accounts").select("*").eq("tenant_id", tenant!.id).maybeSingle(); return data as any; } });
   const inv = useQuery({ queryKey: ["invoices", tenant?.id], enabled: !!tenant, queryFn: async () => { const { data } = await supabase.from("billing_invoices").select("*").eq("tenant_id", tenant!.id).order("period_start", { ascending: false }); return (data || []) as any[]; } });
+  const items = useQuery({ queryKey: ["billing_items", tenant?.id], enabled: !!tenant, queryFn: async () => { const { data } = await supabase.from("billing_summary_v").select("*").eq("tenant_id", tenant!.id); return (data || []) as any[]; } });
   const a = acc.data;
+  const total = (items.data || []).reduce((sum: number, i: any) => sum + Number(i.total_cents), 0);
   return (
     <div className="grid lg:grid-cols-[1fr_1.4fr] gap-4">
       <Card><CardHeader title="Conta" eyebrow="plano, apuração e para quem reporta" /><CardBody className="space-y-2 text-[13px]">
@@ -204,11 +253,21 @@ function Billing() {
         </>)}
         <p className="text-xs text-muted pt-2">Vale mesmo em assinatura fixa: o período fecha, o relatório de uso sai para o responsável e a fatura é emitida pelo financeiro.</p>
       </CardBody></Card>
+      <div className="space-y-4">
+      <Card><CardHeader title="Composição por unidade e portaria" eyebrow="condicional de preço" /><CardBody>
+        {(items.data || []).length === 0 ? <div className="text-[13px] text-muted">Sem itens.</div> : (
+          <table className="tbl"><thead><tr><th>Item</th><th>Unidade</th><th>Qtd</th><th>Unitário</th><th>Total</th></tr></thead><tbody>
+            {(items.data || []).map((i: any, k: number) => <tr key={k}><td><b>{i.description}</b><div className="text-xs text-muted">{i.kind}</div></td><td>{i.plant_name || "tenant"}</td><td className="mono">{i.qty}</td><td className="mono">{i.unit_price_cents ? (i.unit_price_cents / 100).toLocaleString("pt-BR", { style: "currency", currency: "BRL" }) : "Tabela"}</td><td className="mono">{i.total_cents ? (i.total_cents / 100).toLocaleString("pt-BR", { style: "currency", currency: "BRL" }) : "a definir"}</td></tr>)}
+            <tr><td colSpan={4} className="text-right font-bold">Total do período</td><td className="mono font-bold">{total ? (total / 100).toLocaleString("pt-BR", { style: "currency", currency: "BRL" }) : "a definir"}</td></tr>
+          </tbody></table>
+        )}
+      </CardBody></Card>
       <Card><CardHeader title="Faturas" /><CardBody>
         {(inv.data || []).length === 0 ? <Empty title="Nenhuma fatura" hint="Aparecem aqui no fechamento de cada período." /> : (
           <table className="tbl"><thead><tr><th>Período</th><th>Valor</th><th>Vencimento</th><th>Status</th></tr></thead><tbody>{(inv.data || []).map((i) => <tr key={i.id}><td>{fmtDMY(i.period_start)} a {fmtDMY(i.period_end)}</td><td className="mono">{(i.amount_cents / 100).toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}</td><td>{fmtDMY(i.due_date)}</td><td><Chip kind={i.status === "paid" ? "ok" : i.status === "overdue" ? "crit" : "default"}>{i.status}</Chip></td></tr>)}</tbody></table>
         )}
       </CardBody></Card>
+      </div>
     </div>
   );
 }

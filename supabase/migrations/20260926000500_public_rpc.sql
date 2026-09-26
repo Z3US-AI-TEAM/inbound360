@@ -6,7 +6,7 @@ create or replace function public.grant_membership(p_email text, p_slug text, p_
 create or replace function public.my_role(t uuid) returns text language sql stable security definer set search_path = public as $$ select app.tenant_role(t) $$;
 
 -- Reset dos dados de demonstração (só admin do tenant demo ou da plataforma)
-create or replace function public.reset_demo(p_slug text) returns text language plpgsql security definer set search_path = public as $$
+create or replace function public.reset_demo(p_slug text default 'pg') returns text language plpgsql security definer set search_path = public as $$
 declare t uuid; d boolean;
 begin
   select id, demo into t, d from public.tenants where slug = p_slug;

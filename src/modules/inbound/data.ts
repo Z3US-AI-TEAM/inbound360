@@ -19,16 +19,19 @@ export interface Appt {
   supplier_code: string; supplier_name: string; supplier_short: string | null; is_broker: boolean; punctuality: number | null;
   load_type_code: string; load_type_name: string; duration_min: number; vehicle: string;
   po_number: string | null; material: string | null; quantity: string | null; origin: string | null; coverage_days: number | null; free_time_until: string | null; due_date: string | null;
+  plant_code: string; plant_name: string;
 }
 export interface Dock { id: string; code: string; name: string; kind: string; active: boolean; sort: number; plant_id: string }
 export interface LoadType { id: string; code: string; name: string; duration_min: number; vehicle: string; handling: string; supplier_can_book: boolean }
 export interface Supplier { id: string; code: string; name: string; short_name: string | null; city: string | null; distance_note: string | null; is_broker: boolean; contact_name: string | null; contact_phone: string | null; max_windows_per_day: number; min_lead_hours: number; cutoff_time: string; punctuality: number | null; active: boolean; email_domains: string[] }
 export interface PO { id: string; po_number: string; supplier_id: string; material: string; quantity: string | null; due_date: string | null; origin: string; coverage_days: number | null; free_time_until: string | null; container_no: string | null; eta: string | null; vessel_delay_days: number; released_at: string | null; status: string; supplier_code: string; supplier_name: string; supplier_short: string | null; is_broker: boolean; appointments: number }
 export interface Release { id: string; broker_id: string; po_id: string | null; container_no: string; free_time_days: number | null; received_at: string; appointment_id: string | null; status: string; suggested_at: string | null; suggestion_reason: string | null }
-export interface Plant { id: string; code: string; name: string; open_time: string; close_time: string; slot_minutes: number; no_show_minutes: number; timezone: string }
+export type { Plant } from "@/lib/session";
+import type { Plant } from "@/lib/session";
 export interface ApptEvent { id: string; appointment_id: string; at: string; kind: string; note: string | null }
 
 export function useTenantId() { const { tenant } = useSession(); return tenant?.id ?? null; }
+export function usePlantId() { const { plant } = useSession(); return plant?.id ?? null; }
 
 export function dayRange(dayIndex: number) {
   const d = bizDay(dayIndex); const start = new Date(d); start.setHours(0, 0, 0, 0); const end = new Date(d); end.setHours(23, 59, 59, 999);
@@ -36,33 +39,38 @@ export function dayRange(dayIndex: number) {
 }
 
 export function usePlant() {
-  const t = useTenantId();
-  return useQuery({ queryKey: ["plant", t], enabled: !!t, queryFn: async () => { const { data, error } = await supabase.from("ib_plants").select("*").eq("tenant_id", t!).order("code").limit(1).maybeSingle(); if (error) throw error; return data as Plant | null; } });
+  const { plant } = useSession();
+  return { data: plant as Plant | null, isLoading: false };
+}
+export function useGates() {
+  const t = useTenantId(); const pl = usePlantId();
+  return useQuery({ queryKey: ["gates", t, pl], enabled: !!t && !!pl, queryFn: async () => { const { data, error } = await supabase.from("ib_gates").select("*").eq("plant_id", pl!).order("sort"); if (error) throw error; return data as { id: string; code: string; name: string; active: boolean }[]; } });
 }
 export function useDocks() {
-  const t = useTenantId();
-  return useQuery({ queryKey: ["docks", t], enabled: !!t, queryFn: async () => { const { data, error } = await supabase.from("ib_docks").select("*").eq("tenant_id", t!).order("sort"); if (error) throw error; return data as Dock[]; } });
+  const t = useTenantId(); const pl = usePlantId();
+  return useQuery({ queryKey: ["docks", t, pl], enabled: !!t && !!pl, queryFn: async () => { const { data, error } = await supabase.from("ib_docks").select("*").eq("plant_id", pl!).order("sort"); if (error) throw error; return data as Dock[]; } });
 }
 export function useLoadTypes() {
-  const t = useTenantId();
-  return useQuery({ queryKey: ["load_types", t], enabled: !!t, queryFn: async () => { const { data, error } = await supabase.from("ib_load_types").select("*").eq("tenant_id", t!).order("code"); if (error) throw error; return data as LoadType[]; } });
+  const t = useTenantId(); const pl = usePlantId();
+  return useQuery({ queryKey: ["load_types", t, pl], enabled: !!t && !!pl, queryFn: async () => { const { data, error } = await supabase.from("ib_load_types").select("*").eq("plant_id", pl!).order("code"); if (error) throw error; return data as LoadType[]; } });
 }
 export function useSuppliers() {
   const t = useTenantId();
   return useQuery({ queryKey: ["suppliers", t], enabled: !!t, queryFn: async () => { const { data, error } = await supabase.from("ib_suppliers").select("*").eq("tenant_id", t!).order("name"); if (error) throw error; return data as Supplier[]; } });
 }
 export function usePOs(supplierId?: string) {
-  const t = useTenantId();
-  return useQuery({ queryKey: ["pos", t, supplierId], enabled: !!t, queryFn: async () => {
+  const t = useTenantId(); const pl = usePlantId();
+  return useQuery({ queryKey: ["pos", t, pl, supplierId], enabled: !!t, queryFn: async () => {
     let q = supabase.from("ib_purchase_orders_v").select("*").eq("tenant_id", t!).order("due_date");
+    if (pl) q = q.or(`plant_id.eq.${pl},plant_id.is.null`);
     if (supplierId) q = q.eq("supplier_id", supplierId);
     const { data, error } = await q; if (error) throw error; return data as PO[];
   } });
 }
 export function useAppointments(dayIndex: number | null) {
-  const t = useTenantId();
-  return useQuery({ queryKey: ["appts", t, dayIndex], enabled: !!t, refetchInterval: 30_000, queryFn: async () => {
-    let q = supabase.from("ib_appointments_v").select("*").eq("tenant_id", t!).order("starts_at");
+  const t = useTenantId(); const pl = usePlantId();
+  return useQuery({ queryKey: ["appts", t, pl, dayIndex], enabled: !!t && !!pl, refetchInterval: 30_000, queryFn: async () => {
+    let q = supabase.from("ib_appointments_v").select("*").eq("plant_id", pl!).order("starts_at");
     if (dayIndex != null) { const r = dayRange(dayIndex); q = q.gte("starts_at", r.start.toISOString()).lte("starts_at", r.end.toISOString()); }
     const { data, error } = await q; if (error) throw error; return data as Appt[];
   } });
@@ -72,30 +80,30 @@ export function useEvents(apptId: string | null) {
   return useQuery({ queryKey: ["events", apptId], enabled: !!apptId, queryFn: async () => { const { data, error } = await supabase.from("ib_appointment_events").select("*").eq("appointment_id", apptId!).order("at"); if (error) throw error; return data as ApptEvent[]; } });
 }
 export function useReleases() {
-  const t = useTenantId();
-  return useQuery({ queryKey: ["releases", t], enabled: !!t, queryFn: async () => { const { data, error } = await supabase.from("ib_releases").select("*").eq("tenant_id", t!).order("received_at"); if (error) throw error; return data as Release[]; } });
+  const t = useTenantId(); const pl = usePlantId();
+  return useQuery({ queryKey: ["releases", t, pl], enabled: !!t, queryFn: async () => { let q = supabase.from("ib_releases").select("*").eq("tenant_id", t!).order("received_at"); if (pl) q = q.or(`plant_id.eq.${pl},plant_id.is.null`); const { data, error } = await q; if (error) throw error; return data as Release[]; } });
 }
 export function useYard() {
-  const t = useTenantId();
-  return useQuery({ queryKey: ["yard", t], enabled: !!t, refetchInterval: 30_000, queryFn: async () => { const { data, error } = await supabase.from("ib_yard_spots").select("*").eq("tenant_id", t!).order("code"); if (error) throw error; return data as { id: string; code: string; zone: string; appointment_id: string | null; occupied_since: string | null }[]; } });
+  const t = useTenantId(); const pl = usePlantId();
+  return useQuery({ queryKey: ["yard", t, pl], enabled: !!t && !!pl, refetchInterval: 30_000, queryFn: async () => { const { data, error } = await supabase.from("ib_yard_spots").select("*").eq("plant_id", pl!).order("code"); if (error) throw error; return data as { id: string; code: string; zone: string; appointment_id: string | null; occupied_since: string | null }[]; } });
 }
 export function useHorizon() {
-  const t = useTenantId();
-  return useQuery({ queryKey: ["horizon", t], enabled: !!t, queryFn: async () => { const { data, error } = await supabase.from("ib_horizon").select("*, po:ib_purchase_orders(po_number, material, origin, vessel_delay_days, supplier:ib_suppliers(short_name, code))").eq("tenant_id", t!).order("starts_on"); if (error) throw error; return data as any[]; } });
+  const t = useTenantId(); const pl = usePlantId();
+  return useQuery({ queryKey: ["horizon", t, pl], enabled: !!t, queryFn: async () => { const { data, error } = await supabase.from("ib_horizon").select("*, po:ib_purchase_orders!inner(po_number, material, origin, vessel_delay_days, plant_id, supplier:ib_suppliers(short_name, code))").eq("tenant_id", t!).order("starts_on"); if (error) throw error; return (data as any[]).filter((x) => !pl || !x.po?.plant_id || x.po.plant_id === pl); } });
 }
 export function useCapacity() {
-  const t = useTenantId();
-  return useQuery({ queryKey: ["capacity", t], enabled: !!t, queryFn: async () => { const { data, error } = await supabase.from("ib_capacity").select("*").eq("tenant_id", t!).order("day"); if (error) throw error; return data as { day: string; capacity_pallets: number; demand_pallets: number }[]; } });
+  const t = useTenantId(); const pl = usePlantId();
+  return useQuery({ queryKey: ["capacity", t, pl], enabled: !!t && !!pl, queryFn: async () => { const { data, error } = await supabase.from("ib_capacity").select("*").eq("plant_id", pl!).order("day"); if (error) throw error; return data as { day: string; capacity_pallets: number; demand_pallets: number }[]; } });
 }
 export function useRules() {
-  const t = useTenantId();
-  return useQuery({ queryKey: ["rules", t], enabled: !!t, queryFn: async () => { const { data, error } = await supabase.from("ib_rules").select("*").eq("tenant_id", t!).order("key"); if (error) throw error; return data as { id: string; key: string; value: any; description: string | null }[]; } });
+  const t = useTenantId(); const pl = usePlantId();
+  return useQuery({ queryKey: ["rules", t, pl], enabled: !!t, queryFn: async () => { let q = supabase.from("ib_rules").select("*").eq("tenant_id", t!).order("key"); if (pl) q = q.or(`plant_id.eq.${pl},plant_id.is.null`); const { data, error } = await q; if (error) throw error; return data as { id: string; key: string; value: any; description: string | null }[]; } });
 }
 
 /** Mutations com trilha de eventos */
 export function useApptMutations() {
   const qc = useQueryClient();
-  const { tenant, user } = useSession();
+  const { tenant, user, plant } = useSession();
   const invalidate = () => { qc.invalidateQueries({ queryKey: ["appts"] }); qc.invalidateQueries({ queryKey: ["events"] }); qc.invalidateQueries({ queryKey: ["yard"] }); qc.invalidateQueries({ queryKey: ["releases"] }); qc.invalidateQueries({ queryKey: ["pos"] }); };
   const addEvent = async (appointment_id: string, kind: string, note: string, meta: Record<string, unknown> = {}) => {
     await supabase.from("ib_appointment_events").insert({ tenant_id: tenant!.id, appointment_id, kind, note, actor_id: user?.id ?? null, meta });
@@ -120,7 +128,7 @@ export function useApptMutations() {
   const create = useMutation({
     mutationFn: async (row: { plant_id: string; dock_id: string | null; po_id: string | null; supplier_id: string; load_type_id: string; starts_at: string; ends_at: string; status: ApptStatus; source: string; vehicle_plate?: string | null; driver_name?: string | null; driver_phone?: string | null; nfe_key?: string | null; container_no?: string | null; note?: string }) => {
       const day = new Date(row.starts_at);
-      const code = "LOU-" + ymd(day).replace(/-/g, "") + "-" + String(Math.floor(Math.random() * 9000) + 1000);
+      const code = (plant?.code || "APT") + "-" + ymd(day).replace(/-/g, "") + "-" + String(Math.floor(Math.random() * 9000) + 1000);
       const { data: pr } = row.po_id ? await supabase.rpc("ib_priority", { p_po: row.po_id }) : { data: null };
       const p = Array.isArray(pr) ? pr[0] : pr;
       const { note, ...rest } = row;

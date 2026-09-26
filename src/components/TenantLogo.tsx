@@ -4,7 +4,8 @@ import { useSession } from "@/lib/session";
 /** Logo do cliente: só a partir do arquivo oficial (tenant.logo_url). Sem arquivo, chip com o nome curto. */
 export function TenantLogo({ className, size = 36 }: { className?: string; size?: number }) {
   const { tenantPublic } = useSession();
-  const name = tenantPublic?.name || "";
+  if (!tenantPublic) return null;
+  const name = tenantPublic.name || "";
   const short = name.split("·")[0].trim() || "Cliente";
   if (tenantPublic?.logo_url) {
     return <img src={tenantPublic.logo_url} alt={short} className={cn("block object-contain", className)} style={{ height: size }} />;

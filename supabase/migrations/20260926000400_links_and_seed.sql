@@ -47,7 +47,7 @@ grant execute on function app.grant_membership(text, text, text) to authenticate
 -- Semente de demonstração: P&G Planta Louveira (dados fictícios)
 -- Reexecutável: apaga e recria os dados da solução do tenant demo.
 -- ---------------------------------------------------------------------
-create or replace function app.ib_seed_demo(p_slug text default 'pg-louveira') returns text
+create or replace function app.ib_seed_demo(p_slug text default 'pg') returns text
 language plpgsql security definer set search_path = public as $$
 declare
   t uuid; pl uuid; d0 date := app.biz_day(0); d1 date := app.biz_day(1); d2 date := app.biz_day(2);
@@ -59,11 +59,11 @@ declare
 begin
   -- tenant e núcleo
   insert into public.tenants (slug, name, legal_name, solution, brand_mode, product_name, email_domains, status, demo)
-  values (p_slug, 'P&G · Planta Louveira', 'Procter & Gamble do Brasil (planta Louveira)', 'inbound360', 'z3us', 'Inbound 360', array['pg.com','z3us.ai'], 'active', true)
+  values (p_slug, 'P&G', 'Procter & Gamble do Brasil (cliente de demonstração)', 'inbound360', 'z3us', 'Inbound 360', array['pg.com','z3us.ai'], 'active', true)
   on conflict (slug) do update set name = excluded.name, demo = true returning id into t;
 
   insert into public.tenant_settings (tenant_id, identity, params, danger) values (t,
-    '{"og_title":"Inbound 360 · P&G Planta Louveira","og_description":"Docas, gate e pátio numa camada externa por cima do SAP e do WMS.","login_tagline":"O fornecedor agenda. A planta vê. A doca recebe na ordem certa."}',
+    '{"og_title":"Inbound 360 · P&G","og_description":"Docas, gate e pátio numa camada externa por cima do SAP e do WMS.","login_tagline":"O fornecedor agenda. A planta vê. A doca recebe na ordem certa."}',
     '{"sap_extraction_time":"06:30","zeus_persona":"Zeus, assistente do inbound da planta"}',
     '{"warn_days":3,"bar_days":7,"block_days":15}')
   on conflict (tenant_id) do update set identity = excluded.identity, params = excluded.params;
@@ -85,11 +85,23 @@ begin
   delete from public.ib_docks where tenant_id = t;
   delete from public.ib_rules where tenant_id = t;
   delete from public.ib_suppliers where tenant_id = t;
+  delete from public.ib_gates where tenant_id = t;
+  delete from public.billing_items where tenant_id = t;
   delete from public.ib_plants where tenant_id = t;
 
   insert into public.ib_plants (tenant_id, code, name, address, timezone, open_time, close_time, slot_minutes)
-  values (t, 'LOU', 'Planta Louveira', 'Rua Francisco Pereira Dutra, Louveira/SP (portaria a confirmar)', tz, '06:00', '22:00', 15)
+  values (t, 'LOU', 'Louveira', 'Rua Francisco Pereira Dutra, Louveira/SP (portaria a confirmar)', tz, '06:00', '22:00', 15)
   returning id into pl;
+
+  insert into public.ib_gates (tenant_id, plant_id, code, name, sort) values
+    (t, pl, 'P1', 'Portaria 1 · principal', 1),
+    (t, pl, 'P2', 'Portaria 2 · recebimento', 2);
+
+  -- billing por unidade e portaria (valor unitário pela Tabela v1; aqui só a contagem)
+  insert into public.billing_items (tenant_id, plant_id, kind, description, qty, unit_price_cents) values
+    (t, null, 'plataforma', 'Inbound 360 · plataforma (tenant)', 1, 0),
+    (t, pl, 'unidade', 'Unidade Louveira', 1, 0),
+    (t, pl, 'portaria', 'Portarias da unidade Louveira', 2, 0);
 
   for dock in select * from jsonb_array_elements('[
     {"c":"D1","n":"Doca 1","k":"paletizada"},{"c":"D2","n":"Doca 2","k":"paletizada"},{"c":"D3","n":"Doca 3","k":"paletizada"},
@@ -161,8 +173,8 @@ begin
     {"po":"4500909377","f":"BL","m":"Polímero base · sazonal","q":"1 × 40 pés","d":24,"imp":true,"ft":40,"eta":21,"delay":9},
     {"po":"4500909900","f":"BA","m":"Enzima protease · lote 2","q":"1 × 40 pés","d":34,"imp":true,"ft":50,"eta":31},
     {"po":"4500910245","f":"BL","m":"Pasta fluorescente · lote 2","q":"1 × 40 pés","d":40,"imp":true,"ft":56,"eta":37}]'::jsonb) loop
-    insert into public.ib_purchase_orders (tenant_id, po_number, supplier_id, material, quantity, due_date, origin, coverage_days, free_time_until, container_no, eta, vessel_delay_days, released_at, broker_id, status)
-    values (t, po->>'po', (sup_ids->>(po->>'f'))::uuid, po->>'m', po->>'q', app.biz_day((po->>'d')::int),
+    insert into public.ib_purchase_orders (tenant_id, plant_id, po_number, supplier_id, material, quantity, due_date, origin, coverage_days, free_time_until, container_no, eta, vessel_delay_days, released_at, broker_id, status)
+    values (t, pl, po->>'po', (sup_ids->>(po->>'f'))::uuid, po->>'m', po->>'q', app.biz_day((po->>'d')::int),
       case when coalesce((po->>'imp')::boolean,false) then 'importado' else 'nacional' end,
       (cov->>(split_part(po->>'m',' · lote',1)))::numeric,
       case when po ? 'ft' then current_date + (po->>'ft')::int else null end,
@@ -295,8 +307,8 @@ begin
     {"b":"BL","ctn":"KLBU 221340-5","po":"4500908140","ft":6,"h":"09:05"},
     {"b":"BL","ctn":"KLBU 219750-9","po":"4500908120","ft":1,"h":"09:05","seq":756},
     {"b":"BL","ctn":"KLBU 220990-4","po":"4500908133","ft":2,"h":"09:05"}]'::jsonb) loop
-    insert into public.ib_releases (tenant_id, broker_id, po_id, container_no, free_time_days, received_at, source_subject, appointment_id, status)
-    values (t, (sup_ids->>(rel->>'b'))::uuid, (po_ids->>(rel->>'po'))::uuid, rel->>'ctn', (rel->>'ft')::int,
+    insert into public.ib_releases (tenant_id, plant_id, broker_id, po_id, container_no, free_time_days, received_at, source_subject, appointment_id, status)
+    values (t, pl, (sup_ids->>(rel->>'b'))::uuid, (po_ids->>(rel->>'po'))::uuid, rel->>'ctn', (rel->>'ft')::int,
       (d0::timestamp + (rel->>'h')::time) at time zone tz, 'Liberados do dia ' || to_char(d0, 'DD/MM'),
       case when rel ? 'seq' then (appt_by_seq->>(rel->>'seq'))::uuid else null end,
       case when rel ? 'seq' then 'scheduled' else 'new' end);

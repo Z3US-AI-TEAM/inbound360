@@ -41,7 +41,7 @@ export function Clock() {
 }
 
 export function AppShell() {
-  const { tenantPublic, profile, signOut, isAdmin, isExternal, tenant, user } = useSession();
+  const { tenantPublic, profile, signOut, isAdmin, isExternal, tenant, user, tenants, setTenant, plants, plant, setPlant } = useSession();
   const { dark, toggle } = useTheme();
   const loc = useLocation();
   const nav = useNavigate();
@@ -69,8 +69,16 @@ export function AppShell() {
           <div className="hidden md:flex items-center gap-2.5 ml-2">
             {showZ3 && <TenantLogo size={36} />}
             <div className="leading-tight">
-              <div className="text-[14px] font-bold">{tenantPublic?.name?.split("·").slice(-1)[0].trim()}</div>
-              <div className="text-[11px] text-muted font-semibold uppercase tracking-[.04em]">inbound · recebimento</div>
+              {tenants.length > 1 ? (
+                <select className="bg-transparent text-[14px] font-bold -ml-1 pr-1 rounded-sm hover:bg-surface-3" value={tenant?.id || ""} onChange={(e) => setTenant(e.target.value)} aria-label="Cliente">
+                  {tenants.map((t) => <option key={t.id} value={t.id}>{t.name}</option>)}
+                </select>
+              ) : <div className="text-[14px] font-bold">{tenantPublic?.name}</div>}
+              {plants.length > 1 ? (
+                <select className="bg-transparent text-[11px] text-muted font-semibold uppercase tracking-[.04em] -ml-1 rounded-sm hover:bg-surface-3" value={plant?.id || ""} onChange={(e) => setPlant(e.target.value)} aria-label="Unidade">
+                  {plants.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
+                </select>
+              ) : <div className="text-[11px] text-muted font-semibold uppercase tracking-[.04em]">{plant ? `unidade ${plant.name}` : "inbound · recebimento"}</div>}
             </div>
           </div>
           <div className="ml-auto flex items-center gap-2">

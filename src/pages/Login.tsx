@@ -91,11 +91,11 @@ export function LoginPage() {
 
       <div className="flex flex-col p-6 md:p-10">
         <div className="flex items-center justify-between">
-          {tenantPublic?.brand_mode !== "white" ? <Z3Logo className="h-9 w-auto text-ink" /> : <TenantLogo size={40} />}
-          {tenantPublic?.brand_mode !== "white" && <TenantLogo size={40} />}
+          {tenantPublic?.brand_mode === "white" ? <TenantLogo size={40} /> : <Z3Logo className="h-9 w-auto text-ink" />}
+          {tenantPublic && tenantPublic.brand_mode !== "white" && <TenantLogo size={40} />}
         </div>
         <div className="my-auto max-w-[420px] w-full mx-auto py-10">
-          <div className="eyebrow mb-1">{tenantPublic?.name || "Planta"}</div>
+          <div className="eyebrow mb-1">{tenantPublic?.name || "docas, gate e pátio"}</div>
           <h1 className="text-[26px]">{tenantPublic?.product_name || "Inbound 360"}</h1>
           <p className="mt-1.5 text-[13.5px] text-ink-2">Entre com o e-mail da sua empresa. E-mail pessoal não é aceito, por governança.</p>
 
@@ -166,7 +166,7 @@ export function LoginPage() {
           )}
         </div>
         <div className="flex items-center justify-between text-[12px] text-muted">
-          <span>{tenantPublic?.name} · {tenantPublic?.product_name} · tecnologia Z3US.AI</span>
+          <span>{tenantPublic ? `${tenantPublic.name} · ${tenantPublic.product_name} · ` : "Inbound 360 · "}tecnologia Z3US.AI</span>
           <Link to="/privacidade" className="hover:text-ink">Privacidade</Link>
         </div>
       </div>

@@ -38,6 +38,7 @@ export default function App() {
     <Routes>
       <Route path="/" element={<Navigate to="/app/hoje" replace />} />
       <Route path="/login" element={<LoginPage />} />
+      <Route path="/t/:slug" element={<LoginPage />} />
       <Route path="/redefinir" element={<ResetPage />} />
       <Route path="/privacidade" element={<PrivacyPage />} />
       <Route path="/tv" element={<Guard internal><Lazy><TV /></Lazy></Guard>} />

@@ -1,0 +1,13 @@
+import { createClient } from "@supabase/supabase-js";
+
+const url = import.meta.env.VITE_SUPABASE_URL as string | undefined;
+const key = import.meta.env.VITE_SUPABASE_ANON_KEY as string | undefined;
+
+export const SUPABASE_READY = Boolean(url && key);
+
+export const supabase = createClient(url || "https://placeholder.supabase.co", key || "placeholder", {
+  auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: true },
+});
+
+export const TENANT_SLUG = (import.meta.env.VITE_TENANT_SLUG as string) || "pg-louveira";
+export const APP_NAME = (import.meta.env.VITE_APP_NAME as string) || "Inbound 360";

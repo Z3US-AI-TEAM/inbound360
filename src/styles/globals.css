@@ -1,0 +1,82 @@
+@import "./fonts.css";
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ============ Tokens · tema Z3US (escuro, padrão) ============ */
+:root {
+  color-scheme: dark;
+  --bg: #0a0a0b; --surface: #121418; --surface-2: #171a1f; --surface-3: #1d2127;
+  --line: #262a31; --line-strong: #343944;
+  --ink: #f2f2f2; --ink-2: #b7b9bd; --muted: #8e9096;
+  --brand: #f99d28; --brand-ink: #f9a94a; --brand-tint: rgba(249, 157, 40, .12); --brand-line: rgba(249, 157, 40, .38); --on-brand: #0a0a0b;
+  --info: #3b7bff; --info-ink: #8fb3ff; --info-tint: rgba(59, 123, 255, .16); --info-line: rgba(59, 123, 255, .4); --on-info: #ffffff;
+  --zeus: #f99d28; --zeus-ink: #f9a94a; --zeus-tint: rgba(249, 157, 40, .11); --zeus-line: rgba(249, 157, 40, .34);
+  --ok: #3ecf7a; --ok-fill: #2fb567; --ok-tint: rgba(62, 207, 122, .13);
+  --warn: #f2c230; --warn-fill: #f2c230; --warn-tint: rgba(242, 194, 48, .13);
+  --crit: #ff5a63; --crit-fill: #ff5a63; --crit-tint: rgba(255, 90, 99, .15);
+  --pause: #b7b9bd; --pause-tint: rgba(183, 185, 189, .12);
+  --mark: #7f8ba3; --mark-accent: #6b9cff; --grid: #20242a; --axis: #343944;
+  --scrim: rgba(0, 0, 0, .55);
+  --shadow: 0 1px 0 rgba(255, 255, 255, .03), 0 10px 26px rgba(0, 0, 0, .35);
+  --shadow-lg: 0 18px 48px rgba(0, 0, 0, .6);
+  --focus: #ffffff;
+  --radius: 10px; --radius-sm: 6px;
+  --tv-bg: #06080d;
+}
+/* ============ Tema claro (white label ou preferência) ============ */
+:root[data-theme="light"] {
+  color-scheme: light;
+  --bg: #f2f5fa; --surface: #ffffff; --surface-2: #f7f9fc; --surface-3: #eef2f8;
+  --line: #dfe5ee; --line-strong: #c9d2df;
+  --ink: #172033; --ink-2: #3f4a5f; --muted: #6b7689;
+  --brand: #e58a10; --brand-ink: #9a5400; --brand-tint: #fff1de; --brand-line: #f5d09c; --on-brand: #ffffff;
+  --info: #003da5; --info-ink: #002f80; --info-tint: #e6edfa; --info-line: #b9c9ec; --on-info: #ffffff;
+  --zeus: #f99d28; --zeus-ink: #9a5400; --zeus-tint: #fff4e5; --zeus-line: #f5d09c;
+  --ok: #1b7f45; --ok-fill: #1f9d55; --ok-tint: #e7f4ec;
+  --warn: #8a6200; --warn-fill: #e9b000; --warn-tint: #fcf3d6;
+  --crit: #c8102e; --crit-fill: #c8102e; --crit-tint: #fcebec;
+  --pause: #55524f; --pause-tint: #eceae7;
+  --mark: #7f8ba3; --mark-accent: #003da5; --grid: #e8edf4; --axis: #c9d2df;
+  --scrim: rgba(23, 32, 51, .42);
+  --shadow: 0 1px 2px rgba(23, 32, 51, .06), 0 6px 18px rgba(23, 32, 51, .07);
+  --shadow-lg: 0 18px 48px rgba(12, 18, 30, .24);
+  --focus: #172033;
+}
+/* Acento do tenant (white label) sobrescreve o laranja quando configurado */
+:root[data-accent] { --brand: var(--tenant-accent); --brand-ink: var(--tenant-accent-ink); --brand-line: var(--tenant-accent-line); --brand-tint: var(--tenant-accent-tint); }
+
+@layer base {
+  * { @apply border-line; }
+  html, body, #root { height: 100%; }
+  body { @apply bg-bg text-ink font-sans antialiased; font-size: 14px; font-weight: 500; line-height: 1.45; margin: 0; }
+  h1, h2, h3, h4 { @apply font-bold tracking-tight; text-wrap: balance; }
+  button, input, select, textarea { font: inherit; color: inherit; }
+  button { cursor: pointer; }
+  :focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+  ::selection { background: var(--brand-tint); }
+  .mono { @apply font-mono; font-variant-numeric: tabular-nums; font-weight: 400; }
+  .num { font-variant-numeric: tabular-nums; }
+}
+
+@layer components {
+  .card { @apply bg-surface border border-line rounded shadow-card; }
+  .eyebrow { @apply text-[11px] font-bold uppercase tracking-[.08em] text-muted; }
+  .chip { @apply inline-flex items-center gap-1.5 whitespace-nowrap text-xs font-bold rounded-full px-2.5 py-0.5 bg-surface-3 text-ink-2; }
+  .chip-ok { background: var(--ok-tint); color: var(--ok); }
+  .chip-warn { background: var(--warn-tint); color: var(--warn); }
+  .chip-crit { background: var(--crit-tint); color: var(--crit); }
+  .chip-info { background: var(--info-tint); color: var(--info-ink); }
+  .chip-brand { background: var(--brand-tint); color: var(--brand-ink); }
+  .kpi-value { @apply text-[28px] font-bold tracking-tight leading-none num; }
+  .tbl { @apply w-full border-collapse text-[13px]; }
+  .tbl th { @apply text-left text-[11px] font-bold uppercase tracking-[.06em] text-muted px-2.5 py-2 border-b border-line whitespace-nowrap; }
+  .tbl td { @apply px-2.5 py-2 border-b border-line align-middle; }
+  .tbl tr:last-child td { @apply border-b-0; }
+  .field-label { @apply text-xs font-bold text-ink-2; }
+  .input { @apply w-full rounded-sm border border-line-strong bg-surface px-3 py-2 text-[13px] font-semibold text-ink placeholder:text-muted focus:border-brand; }
+  .danger-bar { @apply w-full text-center text-[13px] font-bold py-2; background: var(--crit-fill); color: #fff; }
+}
+
+.scrollbar-thin { scrollbar-width: thin; scrollbar-color: var(--line-strong) transparent; }
+@media (prefers-reduced-motion: reduce) { * { animation: none !important; transition: none !important; } }

@@ -57,7 +57,7 @@ export default function Portaria() {
               <Input value={plate} onChange={(e) => setPlate(e.target.value)} placeholder="Digite ou leia a placa" className="mono uppercase tracking-[.12em]" />
               <Button type="submit" variant="primary"><Camera /> Ler</Button>
             </form>
-            <div className="flex flex-wrap gap-1.5 text-xs text-muted">Simular leitura: {expected.slice(0, 4).map((a) => a.vehicle_plate && <button key={a.id} className="chip hover:bg-surface-3" onClick={() => { setPlate(a.vehicle_plate!); readPlate(a.vehicle_plate!); }}>{a.vehicle_plate}</button>)}</div>
+            <div className="flex flex-wrap gap-1.5 text-xs text-muted">Simular leitura: {expected.slice(0, 4).map((a) => a.vehicle_plate && <button key={a.id} data-sim-plate className="chip hover:bg-surface-3" onClick={() => { setPlate(a.vehicle_plate!); readPlate(a.vehicle_plate!); }}>{a.vehicle_plate}</button>)}</div>
             {read && (
               <div className={cn("rounded border p-3", read.appt ? "border-ok bg-ok-tint" : "border-crit bg-crit-tint")}>
                 <div className="flex items-center gap-2 font-bold">{read.appt ? <Check className="size-4 text-ok" /> : <X className="size-4 text-crit" />}<span className="mono">{read.plate}</span>{read.appt ? <span>confere com {read.appt.code}</span> : <span>sem agendamento hoje</span>}</div>

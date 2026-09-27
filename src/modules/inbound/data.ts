@@ -89,7 +89,7 @@ export function useYard() {
 }
 export function useHorizon() {
   const t = useTenantId(); const pl = usePlantId();
-  return useQuery({ queryKey: ["horizon", t, pl], enabled: !!t, queryFn: async () => { const { data, error } = await supabase.from("ib_horizon").select("*, po:ib_purchase_orders!inner(po_number, material, origin, vessel_delay_days, plant_id, supplier:ib_suppliers(short_name, code))").eq("tenant_id", t!).order("starts_on"); if (error) throw error; return (data as any[]).filter((x) => !pl || !x.po?.plant_id || x.po.plant_id === pl); } });
+  return useQuery({ queryKey: ["horizon", t, pl], enabled: !!t, queryFn: async () => { const { data, error } = await supabase.from("ib_horizon").select("*, po:ib_purchase_orders!inner(po_number, material, origin, vessel_delay_days, plant_id, supplier:ib_suppliers!ib_purchase_orders_supplier_id_fkey(short_name, code))").eq("tenant_id", t!).order("starts_on"); if (error) throw error; return (data as any[]).filter((x) => !pl || !x.po?.plant_id || x.po.plant_id === pl); } });
 }
 export function useCapacity() {
   const t = useTenantId(); const pl = usePlantId();

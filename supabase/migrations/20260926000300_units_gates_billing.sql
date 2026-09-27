@@ -81,8 +81,16 @@ language sql stable security definer set search_path = public as $$
 $$;
 grant execute on function public.my_tenants() to authenticated;
 
+-- A view de POs ganha a unidade (recriada depois da coluna nova; drop porque a ordem das colunas muda)
+drop view if exists public.ib_purchase_orders_v;
+create view public.ib_purchase_orders_v with (security_invoker = true) as
+select po.*, s.code as supplier_code, s.name as supplier_name, s.short_name as supplier_short, s.is_broker,
+       (select count(*) from public.ib_appointments a where a.po_id = po.id and a.status not in ('cancelled','no_show')) as appointments
+from public.ib_purchase_orders po join public.ib_suppliers s on s.id = po.supplier_id;
+
 -- A view de agendamentos ganha a unidade
-create or replace view public.ib_appointments_v with (security_invoker = true) as
+drop view if exists public.ib_appointments_v;
+create view public.ib_appointments_v with (security_invoker = true) as
 select a.*, d.code as dock_code, d.name as dock_name, d.kind as dock_kind,
        s.code as supplier_code, s.name as supplier_name, s.short_name as supplier_short, s.is_broker, s.punctuality,
        lt.code as load_type_code, lt.name as load_type_name, lt.duration_min, lt.vehicle,

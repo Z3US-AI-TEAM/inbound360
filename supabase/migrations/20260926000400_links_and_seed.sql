@@ -63,7 +63,7 @@ begin
   on conflict (slug) do update set name = excluded.name, demo = true returning id into t;
 
   insert into public.tenant_settings (tenant_id, identity, params, danger) values (t,
-    '{"og_title":"Inbound 360 · P&G","og_description":"Docas, gate e pátio numa camada externa por cima do SAP e do WMS.","login_tagline":"O fornecedor agenda. A planta vê. A doca recebe na ordem certa."}',
+    '{"og_title":"Inbound 360 · P&G","email_domain":"pg.com","og_description":"Docas, gate e pátio numa camada externa por cima do SAP e do WMS.","login_tagline":"O fornecedor agenda. A planta vê. A doca recebe na ordem certa."}',
     '{"sap_extraction_time":"06:30","zeus_persona":"Zeus, assistente do inbound da planta"}',
     '{"warn_days":3,"bar_days":7,"block_days":15}')
   on conflict (tenant_id) do update set identity = excluded.identity, params = excluded.params;
@@ -161,6 +161,11 @@ begin
     {"po":"4500923011","f":"EC","m":"Etiquetas verso","q":"3 pallets","d":1},
     {"po":"4500923410","f":"RP","m":"Rótulos sleeve","q":"5 pallets","d":0},
     {"po":"4500923418","f":"RP","m":"Rótulos sleeve","q":"5 pallets","d":1},
+    {"po":"4500918260","f":"QS","m":"Silicato de sódio","q":"16 pallets","d":3},
+    {"po":"4500918277","f":"QS","m":"Tensoativo base LAS","q":"22 pallets","d":6},
+    {"po":"4500922330","f":"PI","m":"Bandejas de papelão","q":"18 pallets","d":5},
+    {"po":"4500923020","f":"EC","m":"Etiquetas frontais","q":"4 pallets","d":4},
+    {"po":"4500921120","f":"AS","m":"Fragrância cítrica 07","q":"5 pallets","d":3},
     {"po":"4500907711","f":"BA","m":"Pasta fluorescente","q":"1 × 40 pés","d":1,"imp":true,"ft":1,"ctn":"ZZAU 448120-3","rel":true},
     {"po":"4500907720","f":"BA","m":"Enzima protease","q":"1 × 40 pés","d":3,"imp":true,"ft":4,"ctn":"ZZAU 451050-2","rel":true},
     {"po":"4500907702","f":"BA","m":"Pasta fluorescente","q":"1 × 40 pés","d":0,"imp":true,"ft":3,"ctn":"ZZAU 447901-7","rel":true},

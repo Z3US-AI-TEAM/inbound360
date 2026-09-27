@@ -87,7 +87,7 @@ export default function Horizonte() {
               );
             })}
           </div>
-          <p className="mt-3 text-[12.5px] text-ink-2">{pico ? `No pico, ${over.length} dia(s) passam da capacidade: é a conta que hoje leva uma semana com o Copilot. Aqui, é uma pergunta ao Zeus: "e se eu usar armazém externo nesses dias?".` : "Cenário base sem pico. Ative a simulação para ver os dias que estouram."}</p>
+          <p className="mt-3 text-[12.5px] text-ink-2">{pico ? `No pico, ${over.length} dia(s) passam da capacidade: a conta que hoje leva dias em planilha vira uma pergunta ao Zeus: "e se eu usar armazém externo nesses dias?".` : "Cenário base sem pico. Ative a simulação para ver os dias que estouram."}</p>
         </CardBody>
       </Card>
     </div>

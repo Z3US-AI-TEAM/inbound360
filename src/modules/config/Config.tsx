@@ -57,7 +57,7 @@ const ROLE_LABEL: Record<string, string> = { tenant_admin: "Admin do tenant", op
 
 function Usuarios() {
   const { tenant, isAdmin } = useSession(); const qc = useQueryClient();
-  const members = useQuery({ queryKey: ["members", tenant?.id], enabled: !!tenant, queryFn: async () => { const { data, error } = await supabase.from("memberships").select("id, role, status, created_at, user:profiles(email, full_name, last_seen_at)").eq("tenant_id", tenant!.id).order("created_at"); if (error) throw error; return data as any[]; } });
+  const members = useQuery({ queryKey: ["members", tenant?.id], enabled: !!tenant, queryFn: async () => { const { data, error } = await supabase.from("memberships").select("id, role, status, created_at, user:profiles!memberships_user_id_fkey(email, full_name, last_seen_at)").eq("tenant_id", tenant!.id).order("created_at"); if (error) throw error; return data as any[]; } });
   const invites = useQuery({ queryKey: ["invites", tenant?.id], enabled: !!tenant && isAdmin, queryFn: async () => { const { data, error } = await supabase.from("invites").select("*").eq("tenant_id", tenant!.id).is("accepted_at", null).order("created_at", { ascending: false }); if (error) throw error; return data as any[]; } });
   const ext = useQuery({ queryKey: ["ext", tenant?.id], enabled: !!tenant, queryFn: async () => { const { data, error } = await supabase.from("external_identities").select("*").eq("tenant_id", tenant!.id).order("created_at"); if (error) throw error; return data as any[]; } });
   const [email, setEmail] = React.useState(""); const [role, setRole] = React.useState("operator");
@@ -92,7 +92,7 @@ function Usuarios() {
       <div className="space-y-4">
         {isAdmin && (
           <Card><CardHeader title="Convidar" /><CardBody className="space-y-3">
-            <Field label="E-mail corporativo"><Input value={email} onChange={(e) => setEmail(e.target.value)} placeholder="nome@pg.com" /></Field>
+            <Field label="E-mail corporativo"><Input value={email} onChange={(e) => setEmail(e.target.value)} placeholder={`nome@${tenant?.email_domains?.[0] || "suaempresa.com.br"}`} /></Field>
             <Field label="Perfil"><Select value={role} onChange={(e) => setRole(e.target.value)}>{Object.entries(ROLE_LABEL).map(([k, v]) => <option key={k} value={k}>{v}</option>)}</Select></Field>
             <Button variant="primary" onClick={() => void invite()}><Send /> Registrar convite</Button>
             {(invites.data || []).length > 0 && <div className="text-xs text-muted">Pendentes: {(invites.data || []).map((i) => i.email).join(", ")}</div>}

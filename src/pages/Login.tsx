@@ -105,7 +105,7 @@ export function LoginPage() {
 
           {mode === "planta" && step === "login" && (
             <form className="mt-5 space-y-4" onSubmit={(e) => { e.preventDefault(); void signIn(); }}>
-              <Field label="E-mail corporativo"><Input type="email" autoComplete="username" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="nome@pg.com" required /></Field>
+              <Field label="E-mail corporativo"><Input type="email" autoComplete="username" value={email} onChange={(e) => setEmail(e.target.value)} placeholder={`nome@${tenantPublic?.identity?.email_domain || "suaempresa.com.br"}`} required /></Field>
               <Field label="Senha"><Input type="password" autoComplete="current-password" value={password} onChange={(e) => setPassword(e.target.value)} required /></Field>
               <div className="flex items-center justify-between gap-3">
                 <Button type="submit" variant="primary" disabled={busy}>{busy ? <Spinner /> : <Lock />} Entrar</Button>

@@ -1,6 +1,6 @@
 import * as React from "react";
 import { NavLink, Outlet, useLocation, useNavigate } from "react-router-dom";
-import { LayoutGrid, Truck, DoorOpen, Mountain, Zap, SlidersHorizontal, Waves, Tv, Settings, Sun, Moon, LogOut, Clock as ClockIcon, Menu, X, LifeBuoy, BookOpen } from "lucide-react";
+import { LayoutGrid, Truck, DoorOpen, Mountain, Zap, SlidersHorizontal, Waves, Tv, Settings, Sun, Moon, LogOut, Clock as ClockIcon, Menu, X, LifeBuoy, BookOpen, Building2 } from "lucide-react";
 import { Z3Logo } from "./Z3Logo";
 import { TenantLogo } from "./TenantLogo";
 import { DangerBar } from "./DangerBar";
@@ -124,6 +124,12 @@ export function AppShell() {
                 <NavLink to="/config/guias" className={({ isActive }) => cn("flex items-center gap-2.5 w-full rounded-sm px-2.5 py-2 text-[13.5px] font-semibold", isActive ? "bg-brand-tint text-brand-ink" : "text-ink-2 hover:bg-surface-3 hover:text-ink")}><BookOpen className="size-4" />Guias de uso</NavLink>
                 {isAdmin && <NavLink to="/config" end className={({ isActive }) => cn("flex items-center gap-2.5 w-full rounded-sm px-2.5 py-2 text-[13.5px] font-semibold", isActive || (loc.pathname.startsWith("/config") && !loc.pathname.includes("chamados") && !loc.pathname.includes("guias")) ? "bg-brand-tint text-brand-ink" : "text-ink-2 hover:bg-surface-3 hover:text-ink")}><Settings className="size-4" />Configurações</NavLink>}
               </nav>
+              {profile?.is_platform_admin && (<>
+                <div className="mt-4 px-2.5 eyebrow">Plataforma</div>
+                <nav className="mt-1 space-y-0.5">
+                  <NavLink to="/gestao" className={({ isActive }) => cn("flex items-center gap-2.5 w-full rounded-sm px-2.5 py-2 text-[13.5px] font-semibold", isActive ? "bg-brand-tint text-brand-ink" : "text-ink-2 hover:bg-surface-3 hover:text-ink")}><Building2 className="size-4" />Gestão Z3US</NavLink>
+                </nav>
+              </>)}
               <div className="mt-auto px-2.5 pb-2 pt-4">
                 <div className="text-[11px] text-muted font-semibold">tecnologia</div>
                 <Z3Logo className="h-6 w-auto text-ink mt-1" />

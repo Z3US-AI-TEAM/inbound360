@@ -15,6 +15,7 @@ Sequência curta, na ordem. Cada passo diz quem faz.
 - Pendente do Herbert: segredos `ANTHROPIC_API_KEY` e `RESEND_API_KEY`; SMTP custom; acesso do app Claude ao repositório (push); primeiro acesso (seção 6).
 
 ## Como atualizar o front (depois desta primeira subida)
+Versão corrente: `release/inbound360_dist_20261001-1945.zip` (Gestão Z3US). Enquanto o push ao GitHub não destrava, a subida é por zip; depois, o plano é hPanel → Avançado → Git puxando um branch `deploy` com o `dist` pronto (webhook de auto-deploy), e aí subir versão vira push.
 1. `VITE_SUPABASE_URL=... VITE_SUPABASE_ANON_KEY=... scripts/build-release.sh` gera um zip novo.
 2. hPanel → site inbound.z3us.app → Gerenciador de arquivos → `public_html` → enviar o zip → extrair → apagar o zip. A `.htaccess` do zip substitui a anterior. O seletor de arquivos do Windows é sempre um clique do Herbert; o Atlas não o opera.
 3. `scripts/smoke-prod.sh` depois de cada subida.
@@ -48,7 +49,10 @@ Opção B (sem zip): hPanel → Node.js app a partir do GitHub, build `npm run b
 
 Convites e identidades externas ligam sozinhos pelo e-mail (migration `20260926000800_signup_autolink.sql`, aplicada em 01/10/2026): convite pendente vira membership no cadastro, identidade externa ganha `user_id`, e convite criado para quem já tem conta liga na hora. Testado em dry run com rollback no banco de produção: bootstrap → `is_platform_admin` + `tenant_admin` em `pg`; convite `operator` → membership `operator` e convite aceito; identidade externa → vinculada.
 
-O admin da plataforma (`is_platform_admin`) passa em `has_tenant`, `can_write` e `is_tenant_admin` de qualquer tenant e é o único que pode inserir em `tenants` e encerrar tenant. Criar tenant novo ainda não tem tela: hoje é SQL (`insert into public.tenants ...` + `tenant_settings` + `billing_accounts`) ou Table Editor do Supabase; tela de "Novo tenant" entra no backlog da plataforma.
+O admin da plataforma (`is_platform_admin`) passa em `has_tenant`, `can_write` e `is_tenant_admin` de qualquer tenant, vê todos os tenants no seletor (`my_tenants`) e é o único que cria, suspende e encerra tenant.
+
+## 7. Gestão Z3US (admin da plataforma)
+Tela `/gestao` (menu lateral "Plataforma → Gestão Z3US", só para `is_platform_admin`): lista de tenants com status, marca, unidades, portarias, usuários, billing e último acesso; `/gestao/novo` cria o tenant em uma transação (`public.create_tenant(jsonb)`: tenant, settings, conta de billing, primeira unidade com portarias, itens de billing e convite do primeiro administrador, que entra sozinho no cadastro); `/gestao/:id` administra status (`public.set_tenant_status`), convites, conta e composição do billing (`set_billing_status`, `billing_accounts`, `billing_items`), unidades e portarias, e a trilha (`audit_log`). Backend na migration `20260926000900_platform_admin.sql`, aplicada em produção em 01/10/2026; percurso ponta a ponta validado no ambiente local com `scripts/gestao-walk.py` (capturas em `shots/gestao_*.png`).
 
 ## O que já está pronto
 Repositório local com 6 commits (fundação, multi-tenant, ambiente de validação, fontes via npm, `.htaccess`, este runbook), build de produção validado localmente, 76 capturas tela a tela, showreel de 60 s. Cópia: `#Z3US.AI\Contas\P&G\dev\inbound360_fundacao_2026-09-26.tar.gz`.

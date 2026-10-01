@@ -17,6 +17,7 @@ const Ondas = React.lazy(() => import("./modules/inbound/Ondas"));
 const TV = React.lazy(() => import("./modules/inbound/TV"));
 const Portal = React.lazy(() => import("./modules/portal/Portal"));
 const Config = React.lazy(() => import("./modules/config/Config"));
+const Gestao = React.lazy(() => import("./modules/gestao/Gestao"));
 
 function Guard({ children, admin, internal }: { children: React.ReactNode; admin?: boolean; internal?: boolean }) {
   const { loading, session, role, access, isAdmin, isExternal } = useSession();
@@ -53,6 +54,7 @@ export default function App() {
         <Route path="/app/ondas" element={<Guard internal><Lazy><Ondas /></Lazy></Guard>} />
         <Route path="/portal/*" element={<Lazy><Portal /></Lazy>} />
         <Route path="/config/*" element={<Lazy><Config /></Lazy>} />
+        <Route path="/gestao/*" element={<Guard internal><Lazy><Gestao /></Lazy></Guard>} />
       </Route>
       <Route path="*" element={<NotFound />} />
     </Routes>

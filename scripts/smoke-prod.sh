@@ -18,7 +18,7 @@ h=$(hdr "$BASE/"); code=$(printf '%s' "$h" | head -1 | awk '{print $2}')
 b=$(body "$BASE/")
 printf '%s' "$b" | grep -q '<div id="root">' && ok "/ entrega o index do SPA" || bad "/ não é o index do SPA (placeholder da Hostinger?)"
 printf '%s' "$h" | grep -qi 'cache-control: .*no-cache' && ok "index.html sem cache" || bad "index.html sem cabeçalho no-cache (.htaccess não aplicado?)"
-for p in /login /t/pg /inbound/hoje; do
+for p in /login /t/pg /app/hoje /privacidade; do
   c=$(curl -sS -o /dev/null -w '%{http_code}' --max-time 25 "$BASE$p" 2>/dev/null)
   bb=$(body "$BASE$p")
   if [ "$c" = "200" ] && printf '%s' "$bb" | grep -q '<div id="root">'; then ok "$p cai no SPA (fallback do .htaccess)"; else bad "$p respondeu $c sem o SPA"; fi

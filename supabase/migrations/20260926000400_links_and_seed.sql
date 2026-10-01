@@ -47,6 +47,22 @@ grant execute on function app.grant_membership(text, text, text) to authenticate
 -- Semente de demonstração: P&G Planta Louveira (dados fictícios)
 -- Reexecutável: apaga e recria os dados da solução do tenant demo.
 -- ---------------------------------------------------------------------
+-- Limpeza do tenant de demonstração (o seed chama antes de recriar tudo)
+create or replace function app.ib_seed_clear(t uuid) returns void
+language plpgsql security definer set search_path = public as $$
+declare tbl text;
+begin
+  foreach tbl in array array['ib_zeus_messages','ib_gate_events','ib_releases','ib_appointment_events','ib_yard_spots','ib_appointments',
+    'ib_horizon','ib_capacity','ib_purchase_orders','ib_load_types','ib_docks','ib_rules','ib_suppliers','ib_gates','billing_items','ib_plants','faq_items'] loop
+    execute format('delete from public.%I where tenant_id = $1', tbl) using t;
+  end loop;
+end $$;
+create or replace function app.ib_clear_events(a uuid) returns void
+language plpgsql security definer set search_path = public as $$
+begin
+  delete from public.ib_appointment_events where appointment_id = a;
+end $$;
+
 create or replace function app.ib_seed_demo(p_slug text default 'pg') returns text
 language plpgsql security definer set search_path = public as $$
 declare
@@ -72,22 +88,7 @@ begin
   values (t, 'piloto', 0, 'monthly', 30, 'financeiro@z3us.ai', 'ok') on conflict (tenant_id) do nothing;
 
   -- limpa dados da solução (ordem por dependência)
-  delete from public.ib_zeus_messages where tenant_id = t;
-  delete from public.ib_gate_events where tenant_id = t;
-  delete from public.ib_releases where tenant_id = t;
-  delete from public.ib_appointment_events where tenant_id = t;
-  delete from public.ib_yard_spots where tenant_id = t;
-  delete from public.ib_appointments where tenant_id = t;
-  delete from public.ib_horizon where tenant_id = t;
-  delete from public.ib_capacity where tenant_id = t;
-  delete from public.ib_purchase_orders where tenant_id = t;
-  delete from public.ib_load_types where tenant_id = t;
-  delete from public.ib_docks where tenant_id = t;
-  delete from public.ib_rules where tenant_id = t;
-  delete from public.ib_suppliers where tenant_id = t;
-  delete from public.ib_gates where tenant_id = t;
-  delete from public.billing_items where tenant_id = t;
-  delete from public.ib_plants where tenant_id = t;
+  perform app.ib_seed_clear(t);
 
   insert into public.ib_plants (tenant_id, code, name, address, timezone, open_time, close_time, slot_minutes)
   values (t, 'LOU', 'Louveira', 'Rua Francisco Pereira Dutra, Louveira/SP (portaria a confirmar)', tz, '06:00', '22:00', 15)
@@ -269,7 +270,7 @@ begin
          else 'Fornecedor agendou pelo portal · PO ' || (ap->>2) || ' validada no SAP' end),
       (t, a_id, st - interval '26 hours' + interval '1 minute', 'notified', 'Confirmação enviada por e-mail e WhatsApp; link de check-in gerado para o motorista');
     if status = 'requested' then
-      delete from public.ib_appointment_events where appointment_id = a_id;
+      perform app.ib_clear_events(a_id);
       insert into public.ib_appointment_events (tenant_id, appointment_id, at, kind, note) values
         (t, a_id, now() - interval '42 minutes', 'booked', 'Fornecedor pediu a janela pelo portal; PO ' || (ap->>2) || ' validada no SAP'),
         (t, a_id, now() - interval '41 minutes', 'note', 'Fila da analista: prioridade calculada por cobertura de estoque e free time');
@@ -365,7 +366,6 @@ begin
   on conflict (tenant_id, email) do update set entity_id = excluded.entity_id, status = 'active';
 
   -- FAQ do tenant
-  delete from public.faq_items where tenant_id = t;
   insert into public.faq_items (tenant_id, solution, question, answer, tags) values
     (t, 'inbound360', 'Como o fornecedor agenda uma entrega?', 'No portal do fornecedor: informe a PO, escolha o tipo de carga e uma janela livre. A PO é validada contra a extração diária do SAP; PO repetida é bloqueada.', array['portal','agendamento']),
     (t, 'inbound360', 'Por que a janela sugerida não é a primeira livre?', 'A prioridade v1 pesa free time do contêiner, cobertura de estoque e prazo da PO. A regra e os pesos ficam em Configurações → Regras.', array['prioridade']),

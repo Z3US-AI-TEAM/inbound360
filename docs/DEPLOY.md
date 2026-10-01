@@ -8,6 +8,10 @@ Sequência curta, na ordem. Cada passo diz quem faz.
 3. **Hostinger**: Chrome aberto com a extensão Claude, logado no hPanel (o conector Hostinger está sem autorização, 401).
 4. **Segredos** (só no painel do Supabase, Edge Functions → Secrets): `ANTHROPIC_API_KEY`, `RESEND_API_KEY`; opcionais `NOTIFY_FROM`, `ZEUS_MODEL`.
 
+## Estado em 01/10/2026
+- Supabase: projeto **Z3US Plataforma** `hztrzamkedbacisrqmsa` (sa-east-1, Pro, Micro) criado pelo dashboard (o conector trava na criação e em qualquer SQL com DROP/DELETE de nível superior, que ele tenta confirmar e não consegue). As 6 migrations foram aplicadas por `execute_sql` em blocos; seed `pg` rodado; `zeus` e `notify` publicadas com `verify_jwt`. URL `https://hztrzamkedbacisrqmsa.supabase.co`, chave pública `sb_publishable_B2s-AH4QkDVCL2Uz6giyzw_60jVkaPR` (vai no front; a service role fica só nas Edge Functions, injetada pelo Supabase).
+- Pendente do Herbert: segredos `ANTHROPIC_API_KEY` e `RESEND_API_KEY`; SMTP custom; acesso do app Claude ao repositório; login na Hostinger.
+
 ## 1. Banco (Atlas, 10 minutos)
 Aplicar as migrations na ordem, com `apply_migration`:
 `20260926000100_core` → `20260926000200_inbound360` → `20260926000300_units_gates_billing` → `20260926000400_links_and_seed` → `20260926000500_public_rpc`.

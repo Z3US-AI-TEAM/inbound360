@@ -7,3 +7,6 @@ dist-ssr
 !.env.example
 .DS_Store
 shots/
+
+*.tsbuildinfo
+shots*.png

@@ -31,11 +31,15 @@ Não prometa integração com órgão público, robô de portão nem certificaç
   const messages = [...(Array.isArray(history) ? history.slice(-6).map((m: any) => ({ role: m.role, content: String(m.content).slice(0, 2000) })) : []),
     { role: "user", content: `CONTEXTO (JSON):\n${JSON.stringify(context).slice(0, 60000)}\n\nPERGUNTA: ${question}` }];
 
-  const r = await fetch("https://api.anthropic.com/v1/messages", {
-    method: "POST", headers: { "x-api-key": key, "anthropic-version": "2023-06-01", "content-type": "application/json" },
-    body: JSON.stringify({ model, max_tokens: 700, system, messages }),
-  });
-  if (!r.ok) return json({ error: "modelo indisponível", detail: await r.text() }, 502);
+  const headers: Record<string, string> = { "x-api-key": key, "anthropic-version": "2023-06-01", "content-type": "application/json" };
+  const workspace = Deno.env.get("ANTHROPIC_WORKSPACE_ID");   // só quando a chave é da organização (não escopada a um workspace)
+  if (workspace) headers["anthropic-workspace-id"] = workspace;
+  const r = await fetch("https://api.anthropic.com/v1/messages", { method: "POST", headers, body: JSON.stringify({ model, max_tokens: 700, system, messages }) });
+  if (!r.ok) {
+    const detail = await r.text();
+    console.error("zeus: anthropic", r.status, detail.slice(0, 500));
+    return json({ error: "modelo indisponível", detail }, 502);
+  }
   const out = await r.json();
   const answer = (out.content || []).map((c: any) => c.text || "").join("\n").trim();
   await supabase.from("ib_zeus_messages").insert([

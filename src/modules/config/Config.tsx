@@ -12,6 +12,7 @@ import { Switch, PageHeader, Spinner } from "@/components/ui/misc";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { cn, fmtDMY, fmtHM, relTime, isPersonalEmail } from "@/lib/utils";
 import { useSuppliers, useDocks, useLoadTypes, useGates } from "@/modules/inbound/data";
+import { sendInvite, inviteOutcome } from "@/lib/notify";
 
 const TABS = [
   { to: "usuarios", label: "Usuários e perfis", icon: Users, admin: true },
@@ -66,7 +67,9 @@ function Usuarios() {
     if (isPersonalEmail(email)) return toast.error("E-mail pessoal não é aceito. Use o e-mail corporativo.");
     const { error } = await supabase.from("invites").insert({ tenant_id: tenant!.id, email, role });
     if (error) return toast.error(error.message);
-    toast.success(`Convite registrado para ${email}. Ao criar a conta com esse e-mail, o acesso entra sozinho.`); setEmail(""); qc.invalidateQueries({ queryKey: ["invites"] });
+    setEmail(""); qc.invalidateQueries({ queryKey: ["invites"] });
+    const r = await sendInvite(tenant!, email, role);
+    (r.ok ? toast.success : toast.warning)(`Convite registrado para ${email}. ${inviteOutcome(r)} Ao criar a conta com esse e-mail, o acesso entra sozinho.`);
   }
   async function setStatus(id: string, status: string) { const { error } = await supabase.from("memberships").update({ status }).eq("id", id); if (error) return toast.error(error.message); qc.invalidateQueries({ queryKey: ["members"] }); toast.success(status === "disabled" ? "Acesso desativado" : "Acesso reativado"); }
   async function setRoleOf(id: string, r: string) { const { error } = await supabase.from("memberships").update({ role: r }).eq("id", id); if (error) return toast.error(error.message); qc.invalidateQueries({ queryKey: ["members"] }); }

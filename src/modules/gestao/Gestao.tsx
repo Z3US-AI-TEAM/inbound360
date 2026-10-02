@@ -11,6 +11,7 @@ import { Input, Field, Select } from "@/components/ui/input";
 import { Switch, PageHeader, Spinner } from "@/components/ui/misc";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { cn, fmtDMY, relTime, isPersonalEmail } from "@/lib/utils";
+import { sendInvite, inviteOutcome } from "@/lib/notify";
 
 // ---------------------------------------------------------------------
 // Tipos e utilitários
@@ -147,7 +148,10 @@ function NovoTenant() {
     setBusy(false);
     if (error) return toast.error(error.message);
     const r = data as { tenant_id: string; slug: string; gates: number; items: number; invite_id: string | null };
-    toast.success(`Tenant ${r.slug} criado${r.invite_id ? ". O administrador entra sozinho ao criar a conta com o e-mail convidado." : "."}`);
+    if (r.invite_id) {
+      const m = await sendInvite({ id: r.tenant_id, slug: r.slug, name: payload.name, product_name: payload.product_name }, payload.admin_email, "tenant_admin");
+      (m.ok ? toast.success : toast.warning)(`Tenant ${r.slug} criado. ${inviteOutcome(m)} O administrador entra sozinho ao criar a conta com o e-mail convidado.`);
+    } else toast.success(`Tenant ${r.slug} criado.`);
     qc.invalidateQueries({ queryKey: ["platform_tenants"] }); void refresh();
     nav(`/gestao/${r.tenant_id}`);
   }
@@ -274,7 +278,9 @@ function TenantDetail() {
     if (isPersonalEmail(email)) return toast.error("E-mail pessoal não é aceito");
     const { error } = await supabase.from("invites").insert({ tenant_id: id, email, role: inv.role, expires_at: new Date(Date.now() + 30 * 86400000).toISOString() });
     if (error) return toast.error(error.message);
-    toast.success(`Convite registrado para ${email}. Entra sozinho ao criar a conta (ou na hora, se já tem conta).`); setInv({ email: "", role: "tenant_admin" });
+    setInv({ email: "", role: "tenant_admin" });
+    const m = await sendInvite({ id: t.id, slug: t.slug, name: t.name, product_name: t.product_name }, email, inv.role);
+    (m.ok ? toast.success : toast.warning)(`Convite registrado para ${email}. ${inviteOutcome(m)} Entra sozinho ao criar a conta (ou na hora, se já tem conta).`);
     qc.invalidateQueries({ queryKey: ["invites", id] }); qc.invalidateQueries({ queryKey: ["members", id] }); invalidate();
   }
   async function saveAccount() {

@@ -17,3 +17,8 @@ RewriteRule . /index.html [L]
   Header set X-Frame-Options "SAMEORIGIN"
   Header set Referrer-Policy "strict-origin-when-cross-origin"
 </IfModule>
+
+# Pacotes de release enviados ao File Manager nunca ficam públicos
+<FilesMatch "\.(zip|tar|gz|tgz|7z|sql|bundle)$">
+  Require all denied
+</FilesMatch>

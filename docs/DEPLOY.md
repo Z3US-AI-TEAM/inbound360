@@ -10,15 +10,18 @@ Sequência curta, na ordem. Cada passo diz quem faz.
 
 ## Estado em 01/10/2026
 - Supabase: projeto **Z3US Plataforma** `hztrzamkedbacisrqmsa` (sa-east-1, Pro, Micro) criado pelo dashboard (o conector trava na criação e em qualquer SQL com DROP/DELETE de nível superior, que ele tenta confirmar e não consegue). As 6 migrations foram aplicadas por `execute_sql` em blocos; seed `pg` rodado; `zeus` e `notify` publicadas com `verify_jwt`. URL `https://hztrzamkedbacisrqmsa.supabase.co`, chave pública `sb_publishable_B2s-AH4QkDVCL2Uz6giyzw_60jVkaPR` (vai no front; a service role fica só nas Edge Functions, injetada pelo Supabase). A tabela `supabase_migrations.schema_migrations` está vazia: antes de um `supabase db push` futuro, marcar as migrations já aplicadas com `supabase migration repair --status applied <versão>`.
+- Hostinger (conector): token da API inválido para esta conta (401 Unauthenticated em 01/10/2026); gerar token em hPanel → Ferramentas de desenvolvimento → API e colar no conector. Enquanto isso, o caminho é o Chrome do Herbert.
+- Resend (conector): autorizado em 01/10/2026. Domínio `z3us.ai` com DKIM e `rsend` verificados e envio habilitado; falta o CNAME `send.z3us.ai → send.forge.rmta.net` no DNS do z3us.ai, que fica no Microsoft 365 (ns*.bdm.microsoftonline.com), para o retorno (Return-Path) alinhar. `hermes.z3us.ai` e `sdr.z3us.ai` verificados.
 - Hostinger: site **inbound.z3us.app** criado em 01/10/2026 no plano Cloud Startup (Sites → Criar site → Site PHP/HTML → subdomínio gratuito do z3us.app, cujo DNS já é da Hostinger: ns1/ns2.dns-parking.com). O DNS do subdomínio e o certificado foram emitidos sozinhos; HTTP redireciona para HTTPS. O front subiu pelo fluxo "Carregar arquivos do site" com `release/inbound360_dist_20261001-1410.zip`; a Hostinger descompactou na raiz pública (`public_html`), `.htaccess` incluso. Prova de vida verde (`scripts/smoke-prod.sh`).
 - Front no ar: `/login` neutro, `/t/pg` com a marca do tenant, rotas protegidas caem em `/login?next=...`, 404 próprio do app.
 - Pendente do Herbert: segredos `ANTHROPIC_API_KEY` e `RESEND_API_KEY`; SMTP custom; acesso do app Claude ao repositório (push); primeiro acesso (seção 6).
 
 ## Como atualizar o front (depois desta primeira subida)
-Versão corrente: `release/inbound360_dist_20261001-1945.zip` (Gestão Z3US). Enquanto o push ao GitHub não destrava, a subida é por zip; depois, o plano é hPanel → Avançado → Git puxando um branch `deploy` com o `dist` pronto (webhook de auto-deploy), e aí subir versão vira push.
-1. `VITE_SUPABASE_URL=... VITE_SUPABASE_ANON_KEY=... scripts/build-release.sh` gera um zip novo.
-2. hPanel → site inbound.z3us.app → Gerenciador de arquivos → `public_html` → enviar o zip → extrair → apagar o zip. A `.htaccess` do zip substitui a anterior. O seletor de arquivos do Windows é sempre um clique do Herbert; o Atlas não o opera.
-3. `scripts/smoke-prod.sh` depois de cada subida.
+Versão no ar: `release/inbound360_dist_20261001-1945.zip` (Gestão Z3US), subida em 01/10/2026 pelo Chrome do Herbert com a extensão Claude in Chrome, sem clique dele. Esse é o caminho padrão agora:
+1. `VITE_SUPABASE_URL=... VITE_SUPABASE_ANON_KEY=... scripts/build-release.sh` gera o zip; copiar para a pasta `uploads` da sessão (`/mnt/user-data/uploads/`), que é a única origem que a extensão aceita para upload.
+2. Chrome com a extensão conectada: hPanel → site inbound.z3us.app → Gerenciador de arquivos (abre o File Browser em `srv1604-files.hstgr.io`) → `public_html` → `file_upload` no input de arquivos (não clicar no botão Upload; ele abre o seletor nativo) → selecionar o zip (um clique na linha) → Extract com nome de pasta `.` e "Overwrite existing files" marcado (com o nome vazio o Extract não faz nada) → selecionar o zip → Delete (lixeira).
+3. `scripts/smoke-prod.sh` e conferir no HTML o nome do bundle novo.
+Sem a extensão, o fallback é o Herbert enviar o zip pelo File Manager. "Importar site" no hPanel NÃO serve para atualizar: ele cria um site novo com domínio temporário. A `.htaccess` nega `.zip/.tar/.gz/.sql/.bundle` em `public_html` por garantia. Quando o repositório entrar nas fontes da sessão, o plano continua: hPanel → Git num branch `deploy` com o `dist`, e subir versão vira push.
 Opção B (quando o push ao GitHub estiver liberado): hPanel → Web app Node.js a partir do GitHub, build `npm run build`, pasta `dist`, variáveis `VITE_*`; aí a subida vira push.
 
 ## 1. Banco (Atlas, 10 minutos)
